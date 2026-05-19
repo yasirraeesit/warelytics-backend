@@ -6,7 +6,7 @@ Portfolio-grade backend for a QR-based inventory tracking system. Warehouse staf
 
 ## Repositories
 - Backend (this repo): `yasirraeesit/warelytics-backend`
-- Admin dashboard: `yasirraeesit/warelytics-admin-dashboard`
+- Client (web): `yasirraeesit/warelytics-client` (or rename your existing admin-dashboard repo)
 - Mobile app: `yasirraeesit/warelytics-mobile-app`
 
 ## Core Features (Planned/Building)
@@ -47,7 +47,7 @@ Create `.env` from `.env.example` (added during implementation):
 
 ## Database Setup (PostgreSQL)
 ### Option A (Recommended): Docker Compose
-From `warelytics/backend`:
+From `warelytics/warelytics-backend`:
 ```bash
 docker compose up -d
 ```
