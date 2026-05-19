@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: warelytics-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: warelytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - warelytics_pgdata:/var/lib/postgresql/data
+
+volumes:
+  warelytics_pgdata:
+

@@ -32,7 +32,7 @@ Portfolio-grade backend for a QR-based inventory tracking system. Warehouse staf
 ## Local Setup
 ### Requirements
 - Node.js (LTS recommended)
-- PostgreSQL 15+ (or Docker)
+- Docker Desktop (recommended) OR PostgreSQL 15+
 
 ### Install
 ```bash
@@ -44,6 +44,35 @@ Create `.env` from `.env.example` (added during implementation):
 - `DATABASE_URL=postgresql://...`
 - `JWT_SECRET=...`
 - `PORT=3001`
+
+## Database Setup (PostgreSQL)
+### Option A (Recommended): Docker Compose
+From `warelytics/backend`:
+```bash
+docker compose up -d
+```
+
+Then:
+```bash
+npm run prisma:generate
+npm run db:migrate -- --name init
+npm run db:seed
+```
+
+Default credentials used by `docker-compose.yml`:
+- Host: `localhost`
+- Port: `5432`
+- DB: `warelytics`
+- User: `postgres`
+- Password: `postgres`
+
+### Option B: Local PostgreSQL install
+Create a database named `warelytics` and set `DATABASE_URL` in `.env`, then run:
+```bash
+npm run prisma:generate
+npm run db:migrate -- --name init
+npm run db:seed
+```
 
 ### Run (dev)
 ```bash
@@ -71,4 +100,3 @@ Products, Inventory Movements, Analytics, Alerts, and Dashboard UI.
 
 ## Project Plan
 See `PROJECT.md`.
-
