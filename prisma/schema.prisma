@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+enum ProductStatus {
+  ACTIVE
+  DAMAGED
+  LOST
+  ARCHIVED
+}
+
+enum ScanStatus {
+  SUCCESS
+  INVALID_QR
+  FAILED
+}
+
+enum InventoryMovementType {
+  STOCK_IN
+  STOCK_OUT
+  TRANSFER
+  DAMAGE
+  AUDIT_ADJUSTMENT
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum ExportStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(OPERATOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  scanEvents ScanEvent[] @relation("UserScanEvents")
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Warehouse {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  zones    Zone[]
+  products Product[]
+
+  @@index([createdAt])
+}
+
+model Zone {
+  id          String    @id @default(uuid())
+  code        String
+  name        String
+  warehouseId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  products  Product[]
+
+  @@unique([warehouseId, code])
+  @@index([warehouseId])
+}
+
+model Plant {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([createdAt])
+}
+
+model Product {
+  id            String        @id @default(uuid())
+  sku           String        @unique
+  name          String
+  category      String
+  description   String?
+  quantity      Int           @default(0)
+  status        ProductStatus @default(ACTIVE)
+  warehouseId   String
+  zoneId        String?
+  plantId       String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  zone      Zone?     @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  plant     Plant?    @relation(fields: [plantId], references: [id], onDelete: SetNull)
+
+  qrCode    QrCode?
+  scanEvents ScanEvent[]
+  movements  InventoryMovement[]
+  adjustments StockAdjustment[]
+  alerts      Alert[]
+
+  @@index([warehouseId])
+  @@index([plantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QrCode {
+  id        String   @id @default(uuid())
+  value     String   @unique
+  productId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ScanEvent {
+  id            String     @id @default(uuid())
+  qrCodeValue   String
+  scanStatus    ScanStatus
+  scannedAt     DateTime   @default(now())
+  remarks       String?
+
+  scannedById   String
+  productId     String?
+  warehouseId   String?
+  zoneId        String?
+  plantId       String?
+
+  actionType    InventoryMovementType?
+  movementId    String?
+
+  scannedBy User      @relation("UserScanEvents", fields: [scannedById], references: [id], onDelete: Restrict)
+  product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  movement  InventoryMovement? @relation(fields: [movementId], references: [id], onDelete: SetNull)
+
+  @@index([scannedAt])
+  @@index([scanStatus])
+  @@index([scannedById])
+  @@index([productId])
+}
+
+model InventoryMovement {
+  id            String                @id @default(uuid())
+  movementType  InventoryMovementType
+  quantity      Int
+  remarks       String?
+  createdAt     DateTime              @default(now())
+
+  productId     String
+  fromWarehouseId String?
+  fromZoneId      String?
+  fromPlantId     String?
+  toWarehouseId   String?
+  toZoneId        String?
+  toPlantId       String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  scanEvents ScanEvent[]
+  stockAdjustment StockAdjustment?
+
+  @@index([productId])
+  @@index([movementType])
+  @@index([createdAt])
+}
+
+model StockAdjustment {
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now())
+
+  productId      String
+  movementId     String   @unique
+
+  systemQuantity Int
+  countedQuantity Int
+  variance       Int
+
+  product  Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+  movement InventoryMovement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model Alert {
+  id        String      @id @default(uuid())
+  type      String
+  message   String
+  status    AlertStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  productId  String?
+  scanEventId String?
+
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ExportLog {
+  id        String       @id @default(uuid())
+  type      String
+  status    ExportStatus @default(PENDING)
+  filters   Json?
+  fileName  String?
+  error     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  requestedById String?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
